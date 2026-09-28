@@ -4,9 +4,23 @@ namespace Tanks2D
 {
     public class EnemySpawner2D : MonoBehaviour
     {
+        // Вспомогательный класс для настроек конкретного врага
+        [System.Serializable]
+        public class EnemySpawnConfig
+        {
+            [Tooltip("Имя для удобства отображения в инспекторе")]
+            public string enemyName;
+            
+            [Tooltip("Префаб этого врага")]
+            public GameObject enemyPrefab;
+            
+            [Range(0, 100), Tooltip("Шанс появления (относительный вес). Чем выше, тем чаще спавнится.")]
+            public int spawnChance = 50;
+        }
+
         [Header("References (Ссылки)")]
-        [SerializeField, Tooltip("Префаб вашего 2D-врага (треугольника)")]
-        private GameObject _enemyPrefab;
+        [SerializeField, Tooltip("Список врагов и их индивидуальные настройки")]
+        private EnemySpawnConfig[] _enemiesConfigs;
 
         [Header("Spawn Settings (Настройки появления)")]
         [SerializeField, Tooltip("Задержка между появлением врагов в секундах")]
@@ -15,7 +29,6 @@ namespace Tanks2D
         [Header("Spawn Zone Boundaries (Границы зоны спавна)")]
         [SerializeField, Tooltip("Минимальная высота (Y) появления врага")]
         private float _minY = -4f;
-        
         [SerializeField, Tooltip("Максимальная высота (Y) появления врага")]
         private float _maxY = 4f;
 
@@ -23,9 +36,8 @@ namespace Tanks2D
 
         private void Update()
         {
-            if (_enemyPrefab == null) return;
+            if (_enemiesConfigs == null || _enemiesConfigs.Length == 0) return;
 
-            // Генерируем врагов строго по таймеру
             if (Time.time >= _nextSpawnTime)
             {
                 SpawnEnemy();
@@ -35,23 +47,55 @@ namespace Tanks2D
 
         private void SpawnEnemy()
         {
-            // Выбираем случайную высоту появления
+            GameObject selectedPrefab = GetRandomEnemyPrefab();
+
+            if (selectedPrefab == null) return;
+
             float randomY = Random.Range(_minY, _maxY);
-            
-            // ЖЕСТКАЯ ФИКСАЦИЯ: Координата Z строго равна 0. 
-            // Это удерживает 2D-треугольники в зоне видимости ортографической камеры.
             Vector3 spawnPosition = new Vector3(transform.position.x, randomY, 0f);
 
-            // Создаем врага плоским к экрану (Quaternion.identity сбрасывает все 3D повороты)
-            GameObject newEnemy = Instantiate(_enemyPrefab, spawnPosition, Quaternion.identity);
-            
-            // Дополнительная страховка: принудительно обнуляем Z координату у созданного клона
+            GameObject newEnemy = Instantiate(selectedPrefab, spawnPosition, Quaternion.identity);
+
             Vector3 safePos = newEnemy.transform.position;
             safePos.z = 0f;
             newEnemy.transform.position = safePos;
         }
 
-        // Отрисовка зоны спавна в редакторе Unity (зеленая вертикальная линия)
+        // Алгоритм взвешенного случайного выбора (Weighted Random)
+        private GameObject GetRandomEnemyPrefab()
+        {
+            int totalWeight = 0;
+
+            // 1. Считаем сумму всех шансов
+            foreach (var config in _enemiesConfigs)
+            {
+                if (config.enemyPrefab != null)
+                {
+                    totalWeight += config.spawnChance;
+                }
+            }
+
+            if (totalWeight == 0) return null;
+
+            // 2. Генерируем случайное число в пределах общей суммы
+            int randomWeight = Random.Range(0, totalWeight);
+            int currentWeightSum = 0;
+
+            // 3. Находим, в какой отрезок попало число
+            foreach (var config in _enemiesConfigs)
+            {
+                if (config.enemyPrefab == null) continue;
+
+                currentWeightSum += config.spawnChance;
+                if (randomWeight < currentWeightSum)
+                {
+                    return config.enemyPrefab;
+                }
+            }
+
+            return null;
+        }
+
         private void OnDrawGizmosSelected()
         {
             Gizmos.color = Color.green;

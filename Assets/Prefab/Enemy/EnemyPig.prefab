@@ -106,7 +106,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!4 &7596047519706260431
 Transform:
   m_ObjectHideFlags: 0
@@ -221,7 +221,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!4 &2291681007837248397
 Transform:
   m_ObjectHideFlags: 0
@@ -368,7 +368,7 @@ GameObject:
   - component: {fileID: 7924163824062380369}
   - component: {fileID: 2798947184148396642}
   m_Layer: 0
-  m_Name: Enemy
+  m_Name: EnemyPig
   m_TagString: Enemy
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
