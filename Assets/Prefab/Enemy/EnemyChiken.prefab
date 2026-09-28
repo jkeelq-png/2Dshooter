@@ -509,6 +509,7 @@ GameObject:
   - component: {fileID: 5701294481642761081}
   - component: {fileID: 2796968870259578443}
   - component: {fileID: 6919114836992008403}
+  - component: {fileID: -2929496720508502094}
   - component: {fileID: 2583226466308717430}
   m_Layer: 0
   m_Name: EnemyChiken
@@ -674,6 +675,18 @@ MonoBehaviour:
   hpSlider: {fileID: 6562959970611033329}
   offsetX: 1.5
   offsetY: 0.6
+--- !u!114 &-2929496720508502094
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5376453115032143762}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a28550484476f1341b9483f4bc05aba5, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Tanks2D.EnemyHealth
 --- !u!95 &2583226466308717430
 Animator:
   serializedVersion: 7

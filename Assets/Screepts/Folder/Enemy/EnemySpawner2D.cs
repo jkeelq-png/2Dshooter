@@ -16,10 +16,13 @@ namespace Tanks2D
             
             [Range(0, 100), Tooltip("Шанс появления (относительный вес). Чем выше, тем чаще спавнится.")]
             public int spawnChance = 50;
+
+            [Min(0), Tooltip("Количество золота за уничтожение этого врага")]
+            public int goldReward = 10;
         }
 
         [Header("References (Ссылки)")]
-        [SerializeField, Tooltip("Список врагов и их индивидуальные настройки")]
+        [SerializeField, Tooltip("Список врагов и их individualные настройки")]
         private EnemySpawnConfig[] _enemiesConfigs;
 
         [Header("Spawn Settings (Настройки появления)")]
@@ -47,29 +50,40 @@ namespace Tanks2D
 
         private void SpawnEnemy()
         {
-            GameObject selectedPrefab = GetRandomEnemyPrefab();
+            EnemySpawnConfig selectedConfig = GetRandomEnemyConfig();
 
-            if (selectedPrefab == null) return;
+            if (selectedConfig == null || selectedConfig.enemyPrefab == null) return;
 
             float randomY = Random.Range(_minY, _maxY);
             Vector3 spawnPosition = new Vector3(transform.position.x, randomY, 0f);
 
-            GameObject newEnemy = Instantiate(selectedPrefab, spawnPosition, Quaternion.identity);
+            GameObject newEnemy = Instantiate(selectedConfig.enemyPrefab, spawnPosition, Quaternion.identity);
 
             Vector3 safePos = newEnemy.transform.position;
             safePos.z = 0f;
             newEnemy.transform.position = safePos;
+
+            // ИСПРАВЛЕНИЕ: Ищем скрипт PigEnemy, используя global:: для выхода из пространства имен Tanks2D
+            global::PigEnemy pigEnemy = newEnemy.GetComponent<global::PigEnemy>();
+            if (pigEnemy != null)
+            {
+                // Передаем награду в золото напрямую в вашу свинку
+                pigEnemy.Initialize(selectedConfig.goldReward);
+            }
+            else
+            {
+                Debug.LogWarning($"[EnemySpawner2D] На префабе {newEnemy.name} не найден скрипт PigEnemy!");
+            }
         }
 
-        // Алгоритм взвешенного случайного выбора (Weighted Random)
-        private GameObject GetRandomEnemyPrefab()
+        private EnemySpawnConfig GetRandomEnemyConfig()
         {
             int totalWeight = 0;
 
-            // 1. Считаем сумму всех шансов
+            // 1. Считаем сумму всех шансов (пропуская пустые слоты и нулевые шансы)
             foreach (var config in _enemiesConfigs)
             {
-                if (config.enemyPrefab != null)
+                if (config.enemyPrefab != null && config.spawnChance > 0)
                 {
                     totalWeight += config.spawnChance;
                 }
@@ -84,12 +98,12 @@ namespace Tanks2D
             // 3. Находим, в какой отрезок попало число
             foreach (var config in _enemiesConfigs)
             {
-                if (config.enemyPrefab == null) continue;
+                if (config.enemyPrefab == null || config.spawnChance <= 0) continue;
 
                 currentWeightSum += config.spawnChance;
                 if (randomWeight < currentWeightSum)
                 {
-                    return config.enemyPrefab;
+                    return config;
                 }
             }
 
