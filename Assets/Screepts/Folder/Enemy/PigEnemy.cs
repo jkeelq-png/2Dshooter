@@ -1,6 +1,6 @@
 using System.Collections;
 using UnityEngine;
-using UnityEngine.UI; 
+using UnityEngine.UI; // Оставляем для работы с UI
 
 public class PigEnemy : MonoBehaviour
 {
@@ -14,12 +14,13 @@ public class PigEnemy : MonoBehaviour
     [Header("UI & Visuals")]
     [SerializeField] private GameObject damageTextPrefab; 
 
+    // ССЫЛКА НА СЛАЙДЕР: Перетащим его вручную в инспекторе!
+    [SerializeField] private Slider hpSlider; 
+
     [Header("Damage Text Position Offset")]
     [SerializeField] private float offsetX = 0f;
     [SerializeField] private float offsetY = 1.2f; 
 
-    // Сделали приватным — теперь инспектор идёт лесом, код найдёт всё сам!
-    private Image hpBarImage; 
     private Animator animator;
     private bool isDying = false;
 
@@ -28,28 +29,12 @@ public class PigEnemy : MonoBehaviour
         animator = GetComponent<Animator>();
         currentHP = maxHP;
 
-        // ЖЕЛЕЗОБЕТОННЫЙ ПОИСК: ищем компонент Image в объектах внутри свинки
-        hpBarImage = GetComponentInChildren<Image>();
-
-        if (hpBarImage != null)
+        // Настраиваем слайдер при старте игры под наше здоровье
+        if (hpSlider != null)
         {
-            hpBarImage.fillAmount = 1f;
-            
-            // На всякий случай проверяем, что у картинки включен нужный режим
-            if (hpBarImage.type != Image.Type.Filled)
-            {
-                hpBarImage.type = Image.Type.Filled;
-                hpBarImage.fillMethod = Image.FillMethod.Horizontal;
-            }
-        }
-        else
-        {
-            // Если Canvas материнский, ищем по имени объекта на сцене
-            GameObject globalBar = GameObject.Find("Pig_HP_Bar");
-            if (globalBar != null)
-            {
-                hpBarImage = globalBar.GetComponent<Image>();
-            }
+            hpSlider.minValue = 0;
+            hpSlider.maxValue = maxHP;
+            hpSlider.value = maxHP; // На старте полоска полная (30 из 30)
         }
     }
 
@@ -65,11 +50,10 @@ public class PigEnemy : MonoBehaviour
 
         currentHP -= damage;
 
-        if (hpBarImage != null)
+        // ИЗМЕНЕНИЕ: Теперь двигаем ползунок слайдера!
+        if (hpSlider != null)
         {
-            // Теперь деление точно дробное и картинка живая со сцены
-            float healthPercentage = (float)currentHP / maxHP;
-            hpBarImage.fillAmount = Mathf.Clamp01(healthPercentage);
+            hpSlider.value = currentHP; // Слайдер сам мгновенно уменьшит полоску
         }
 
         if (damageTextPrefab != null)
@@ -94,10 +78,10 @@ public class PigEnemy : MonoBehaviour
     {
         isDying = true;
 
-        if (hpBarImage != null)
+        if (hpSlider != null)
         {
-            // Скрываем только картинку, чтобы не сломать весь Canvas игры
-            hpBarImage.gameObject.SetActive(false);
+            // Скрываем весь слайдер при смерти
+            hpSlider.gameObject.SetActive(false);
         }
 
         Collider2D col = GetComponent<Collider2D>();
