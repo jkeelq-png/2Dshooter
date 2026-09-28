@@ -1,6 +1,6 @@
 using System.Collections;
 using UnityEngine;
-using UnityEngine.UI; // Оставляем для работы с UI
+using UnityEngine.UI; 
 
 public class PigEnemy : MonoBehaviour
 {
@@ -14,7 +14,7 @@ public class PigEnemy : MonoBehaviour
     [Header("UI & Visuals")]
     [SerializeField] private GameObject damageTextPrefab; 
 
-    // ССЫЛКА НА СЛАЙДЕР: Перетащим его вручную в инспекторе!
+    // Ссылка на Слайдер из инспектора
     [SerializeField] private Slider hpSlider; 
 
     [Header("Damage Text Position Offset")]
@@ -34,7 +34,7 @@ public class PigEnemy : MonoBehaviour
         {
             hpSlider.minValue = 0;
             hpSlider.maxValue = maxHP;
-            hpSlider.value = maxHP; // На старте полоска полная (30 из 30)
+            hpSlider.value = maxHP; 
         }
     }
 
@@ -50,10 +50,9 @@ public class PigEnemy : MonoBehaviour
 
         currentHP -= damage;
 
-        // ИЗМЕНЕНИЕ: Теперь двигаем ползунок слайдера!
         if (hpSlider != null)
         {
-            hpSlider.value = currentHP; // Слайдер сам мгновенно уменьшит полоску
+            hpSlider.value = currentHP; 
         }
 
         if (damageTextPrefab != null)
@@ -80,7 +79,7 @@ public class PigEnemy : MonoBehaviour
 
         if (hpSlider != null)
         {
-            // Скрываем весь слайдер при смерти
+            // Скрываем весь слайдер при смерти, чтобы он не висел в воздухе над трупом
             hpSlider.gameObject.SetActive(false);
         }
 
@@ -95,20 +94,35 @@ public class PigEnemy : MonoBehaviour
         StartCoroutine(CleanUpAfterAnimation());
     }
 
+    // ИСПРАВЛЕННАЯ КОРУТИНА: Ждёт включения и окончания анимации смерти
     private IEnumerator CleanUpAfterAnimation()
     {
-        yield return null;
-
         if (animator != null)
         {
+            // 1. Ждем окончания текущего кадра, чтобы триггер смерти точно применился в Unity
+            yield return new WaitForEndOfFrame();
+
+            // 2. Даем аниматору немного времени (до 0.15 сек) на переход в состояние "Die"
+            float maxTransitionWait = 0.15f;
+            float elapsed = 0f;
+            
+            while (!animator.GetCurrentAnimatorStateInfo(0).IsName("Die") && elapsed < maxTransitionWait)
+            {
+                elapsed += Time.deltaTime;
+                yield return null;
+            }
+
+            // 3. Получаем точную длину анимации смерти и ждем её полного окончания
             AnimatorStateInfo stateInfo = animator.GetCurrentAnimatorStateInfo(0);
             yield return new WaitForSeconds(stateInfo.length);
         }
         else
         {
+            // Если аниматора нет, просто исчезаем через полсекунды
             yield return new WaitForSeconds(0.5f);
         }
 
+        // Окончательно удаляем свинку со сцены
         Destroy(gameObject);
     }
 }
