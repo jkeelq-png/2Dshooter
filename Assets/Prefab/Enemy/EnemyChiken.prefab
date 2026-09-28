@@ -672,6 +672,7 @@ MonoBehaviour:
   maxHP: 15
   speed: 2
   damageTextPrefab: {fileID: 5301901670404475359, guid: 07f5e5bcc6a63d046b8d5b6e8fceecf3, type: 3}
+  goldTextPrefab: {fileID: 5301901670404475359, guid: 92e1001d815a5bf4193d302aa32a2964, type: 3}
   hpSlider: {fileID: 6562959970611033329}
   offsetX: 1.5
   offsetY: 0.6

@@ -13,6 +13,7 @@ public class PigEnemy : MonoBehaviour
 
     [Header("UI & Visuals")]
     [SerializeField] private GameObject damageTextPrefab; 
+    [SerializeField] private GameObject goldTextPrefab; // Префаб текста с .png монеткой внутри
 
     [SerializeField] private Slider hpSlider; 
 
@@ -23,10 +24,10 @@ public class PigEnemy : MonoBehaviour
     private Animator animator;
     private bool isDying = false;
 
-    // ЗОЛОТО: Переменная, где свинка хранит свою стоимость
+    // Внутренняя переменная для золота, которую заполнит спавнер
     private int _goldValue;
 
-    // ЗОЛОТО: Этот метод вызовет спавнер в момент создания врага
+    // Метод инициализации золота (вызывается из EnemySpawner2D)
     public void Initialize(int goldReward)
     {
         _goldValue = goldReward;
@@ -85,8 +86,29 @@ public class PigEnemy : MonoBehaviour
         if (isDying) return;
         isDying = true;
 
-        // ЗОЛОТО: В момент смерти пули мгновенно отправляем золото в кошелек!
+        // Железобетонно начисляем золото в кошелек
         Wallet.AddGold(_goldValue);
+
+        // Спавним текст полученного золота прямо над свинкой
+        if (goldTextPrefab != null && _goldValue > 0)
+        {
+            Vector3 spawnPosition = transform.position + new Vector3(offsetX, offsetY + 0.3f, 0f);
+            GameObject textGo = Instantiate(goldTextPrefab, spawnPosition, Quaternion.identity);
+            
+            DamageText goldTextScript = textGo.GetComponent<DamageText>();
+            if (goldTextScript != null)
+            {
+                goldTextScript.Setup(_goldValue); 
+            }
+
+            TMPro.TMP_Text textMesh = textGo.GetComponent<TMPro.TMP_Text>();
+            if (textMesh != null)
+            {
+                // Выводим только знак "+" и цифру, так как .png монетка встроена в сам префаб
+                textMesh.text = $"+{_goldValue}";
+                textMesh.color = new Color(1f, 0.84f, 0f); // Красивый золотой цвет
+            }
+        }
 
         if (hpSlider != null)
         {
