@@ -52,18 +52,19 @@ namespace Tanks2D
                 
                 if (enemy != null)
                 {
-                    // 1. Наносим свинке 10 единиц урона
-                    enemy.ApplyDamage(10);
+                    // ИЗМЕНЕНО: Вместо фиксированных 10 единиц, берем текущий урон из скрипта улучшения!
+                    int currentDamage = UpgradeButton.BulletDamage;
                     
-                    // 2. Спавним твой сочный всплывающий текст урона напрямую через префаб,
-                    // обходя любые ошибки типов и блокировки папок! Он сам вылетит как надо.
+                    enemy.ApplyDamage(currentDamage);
+                    
+                    // Спавним сочный всплывающий текст урона напрямую через префаб
                     if (damageTextPrefab != null)
                     {
                         Instantiate(damageTextPrefab, transform.position, Quaternion.identity);
                     }
                 }
 
-                // 3. Уничтожаем пулю при попадании
+                // Уничтожаем пулю при попадании
                 Destroy(gameObject);
             }
         }

@@ -38,6 +38,10 @@ namespace Tanks2D
 
         private void Update()
         {
+            // НОВОЕ: Если магазин открыт (игра на паузе) — прерываем выполнение кода.
+            // Персонаж перестанет крутиться за мышкой и стрелять!
+            if (ShopController.IsPaused) return;
+
             RotatePlayerTowardsMouse();
             
             // Стрельба по зажатию левой кнопки мыши
@@ -104,26 +108,25 @@ namespace Tanks2D
         }
 
         private void Shoot()
-{
-    if (_bulletPrefab == null || _firePoint == null) return;
+        {
+            if (_bulletPrefab == null || _firePoint == null) return;
 
-    // Спавним пулю
-    GameObject bullet = Instantiate(_bulletPrefab, _firePoint.position, _firePoint.rotation);
-    
-    // Защита от улетания по Z
-    Vector3 safePos = bullet.transform.position;
-    safePos.z = 0f;
-    bullet.transform.position = safePos;
+            // Спавним пулю
+            GameObject bullet = Instantiate(_bulletPrefab, _firePoint.position, _firePoint.rotation);
+            
+            // Защита от улетания по Z
+            Vector3 safePos = bullet.transform.position;
+            safePos.z = 0f;
+            bullet.transform.position = safePos;
 
-    // НОВОЕ: Находим или добавляем наш чистый скрипт движения и запускаем пулю!
-    BulletMovement2D bulletScript = bullet.GetComponent<BulletMovement2D>();
-    if (bulletScript == null)
-    {
-        bulletScript = bullet.AddComponent<BulletMovement2D>();
-    }
-    
-    bulletScript.Initialize(_bulletSpeed);
-}
-
+            // Находим или добавляем наш чистый скрипт движения и запускаем пулю!
+            BulletMovement2D bulletScript = bullet.GetComponent<BulletMovement2D>();
+            if (bulletScript == null)
+            {
+                bulletScript = bullet.AddComponent<BulletMovement2D>();
+            }
+            
+            bulletScript.Initialize(_bulletSpeed);
+        }
     }
 }

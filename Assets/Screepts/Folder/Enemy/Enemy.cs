@@ -48,7 +48,9 @@ public class PigEnemy : MonoBehaviour
 
     void Update()
     {
-        if (isDying) return;
+        // ИСПРАВЛЕНО: Если свинка умирает ИЛИ игра поставлена на паузу в магазине — движение прекращается!
+        if (isDying || Tanks2D.ShopController.IsPaused) return;
+
         transform.Translate(Vector2.right * speed * Time.deltaTime);
     }
 
@@ -89,7 +91,7 @@ public class PigEnemy : MonoBehaviour
         // Железобетонно начисляем золото в кошелек
         Wallet.AddGold(_goldValue);
 
-        // Спавним текст полученного золота прямо над свинкой
+        // Спавним text полученного золота прямо над свинкой
         if (goldTextPrefab != null && _goldValue > 0)
         {
             Vector3 spawnPosition = transform.position + new Vector3(offsetX, offsetY + 0.3f, 0f);
