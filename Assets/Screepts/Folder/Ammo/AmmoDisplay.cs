@@ -1,4 +1,5 @@
 using UnityEngine;
+using UnityEngine.UI;
 using TMPro;
 
 namespace Tanks2D
@@ -6,29 +7,44 @@ namespace Tanks2D
     public class AmmoDisplay : MonoBehaviour
     {
         [Header("UI Elements")]
-        [Tooltip("Перетащи сюда созданный текстовый объект AmmoText")]
         [SerializeField] private TextMeshProUGUI ammoText;
+        [SerializeField] private Slider reloadSlider;
 
         [Header("References")]
-        [Tooltip("Перетащи сюда объект Танка (игрока), на котором висит PlayerController2D")]
         [SerializeField] private PlayerController2D playerController;
 
-        [Header("Settings")]
-        [SerializeField] private int maxAmmo = 15; // Должно совпадать с макс. патронами танка
+        void Start()
+        {
+            if (reloadSlider != null) reloadSlider.gameObject.SetActive(false);
+        }
 
         void Update()
         {
-            if (ammoText == null || playerController == null) return;
+            if (playerController == null) return;
 
-            // Если танк в процессе перезарядки
             if (playerController.IsReloading)
             {
-                ammoText.text = "<color=red>ПЕРЕЗАРЯДКА...</color>";
+                if (ammoText != null) ammoText.text = "<color=red>ПЕРЕЗАРЯДКА...</color>";
+
+                if (reloadSlider != null)
+                {
+                    if (!reloadSlider.gameObject.activeSelf) 
+                        reloadSlider.gameObject.SetActive(true);
+
+                    float totalTime = PlayerController2D.CurrentReloadTime;
+                    float timeLeft = playerController.ReloadEndTime - Time.time;
+                    float progress = Mathf.Clamp01((totalTime - timeLeft) / totalTime);
+                    reloadSlider.value = progress;
+                }
             }
             else
             {
-                // Показываем текущее количество патронов
-                ammoText.text = $"Патроны: {playerController.CurrentAmmo} / {maxAmmo}";
+                if (ammoText != null) ammoText.text = $"Патроны: {playerController.CurrentAmmo} / {PlayerController2D.MaxAmmo}";
+
+                if (reloadSlider != null && reloadSlider.gameObject.activeSelf)
+                {
+                    reloadSlider.gameObject.SetActive(false); 
+                }
             }
         }
     }

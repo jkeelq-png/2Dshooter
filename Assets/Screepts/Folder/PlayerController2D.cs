@@ -13,13 +13,11 @@ namespace Tanks2D
 
         [Header("Weapon Settings (Настройки оружия)")]
         [SerializeField] private float _bulletSpeed = 20f;
-        
-        [Tooltip("Задержка между выстрелами в секундах (сделали чуть медленнее, чтобы не было автомата)")]
-        [SerializeField] private float _fireRate = 0.4f; 
+        [SerializeField] private float _baseFireRate = 0.4f; 
 
         [Header("Ammo & Reload Settings (Обойма и Перезарядка)")]
-        [SerializeField] private int _maxAmmo = 15; // Размер обоймы
-        [SerializeField] private float _baseReloadTime = 2.0f; // Начальное время перезарядки (сек)
+        [SerializeField] private int _maxAmmo = 15; 
+        [SerializeField] private float _baseReloadTime = 2.0f; 
 
         [Header("3D Model Setup")]
         [SerializeField] private ModelForwardAxis _forwardAxis = ModelForwardAxis.Z_Axis;
@@ -30,23 +28,27 @@ namespace Tanks2D
         private float _nextFireTime = 0f;
         private Camera _mainCamera;
 
-        // ВНУТРЕННИЕ ПЕРЕМЕННЫЕ
         private int _currentAmmo;
         private float _reloadEndTime = 0f;
         private bool _isReloading = false;
 
-        // ГЛОБАЛЬНАЯ статическая переменная: текущее время перезарядки (его будет улучшать магазин)
-        public static float CurrentReloadTime { get; set; } = 2.0f;
+        // ГЛОБАЛЬНЫЕ СТАТИЧЕСКИЕ ПЕРЕМЕННЫЕ ДЛЯ МАГАЗИНА
+        public static float CurrentReloadTime { get; set; } = 2.0f; 
+        public static float CurrentFireRate { get; set; } = 0.4f;   
+        public static int MaxAmmo { get; set; } = 15; 
 
-        // Для отображения в UI (по желанию)
+        // Свойства для чтения другими скриптами
         public int CurrentAmmo => _currentAmmo;
         public bool IsReloading => _isReloading;
+        public float ReloadEndTime => _reloadEndTime; 
 
         private void Start()
         {
             _mainCamera = Camera.main;
-            CurrentReloadTime = _baseReloadTime; // Присваиваем базовое время
-            _currentAmmo = _maxAmmo; // Заряжаем полную обойму
+            CurrentReloadTime = _baseReloadTime; 
+            CurrentFireRate = _baseFireRate;
+            MaxAmmo = _maxAmmo;
+            _currentAmmo = MaxAmmo; 
         }
 
         private void Update()
@@ -55,28 +57,25 @@ namespace Tanks2D
 
             RotatePlayerTowardsMouse();
 
-            // Проверка: завершилась ли перезарядка?
+            // Проверка окончания перезарядки
             if (_isReloading && Time.time >= _reloadEndTime)
             {
-                _currentAmmo = _maxAmmo;
+                _currentAmmo = MaxAmmo;
                 _isReloading = false;
-                Debug.Log("[Weapon] Перезарядка окончена! Обойма полная.");
+                Debug.Log("[Weapon] Перезарядка окончена!");
             }
             
-            // Стрельба по зажатию левой кнопки мыши
+            // Стрельба
             if (Mouse.current != null && Mouse.current.leftButton.isPressed)
             {
-                // Стрелять можно, только если не идет перезарядка и пришло время следующего выстрела
                 if (!_isReloading && Time.time >= _nextFireTime)
                 {
                     if (_currentAmmo > 0)
                     {
                         Shoot();
                         _currentAmmo--;
-                        _nextFireTime = Time.time + _fireRate;
-                        Debug.Log($"[Weapon] Выстрел! Патронов осталось: {_currentAmmo}/{_maxAmmo}");
+                        _nextFireTime = Time.time + CurrentFireRate;
 
-                        // Если это был последний патрон — автоматически запускаем перезарядку
                         if (_currentAmmo <= 0)
                         {
                             StartReload();
@@ -85,8 +84,9 @@ namespace Tanks2D
                 }
             }
 
-            // Ручная перезарядка на клавишу R (опционально, через старый инпут или проверку GetKey)
-            if (Input.GetKeyDown(KeyCode.R) && !_isReloading && _currentAmmo < _maxAmmo)
+            // РУЧНАЯ ПЕРЕЗАРЯДКА НА "R"
+            bool rPressed = (Keyboard.current != null && Keyboard.current.rKey.wasPressedThisFrame) || Input.GetKeyDown(KeyCode.R);
+            if (rPressed && !_isReloading && _currentAmmo < MaxAmmo)
             {
                 StartReload();
             }
@@ -95,19 +95,16 @@ namespace Tanks2D
         private void StartReload()
         {
             _isReloading = true;
-            // Время окончания перезарядки считается по актуальному значению из магазина!
             _reloadEndTime = Time.time + CurrentReloadTime;
-            Debug.Log($"[Weapon] Перезарядка... Ждем {CurrentReloadTime} сек.");
+            Debug.Log($"[Weapon] Перезарядка началась. Время: {CurrentReloadTime} сек.");
         }
 
         private void RotatePlayerTowardsMouse()
         {
             if (_mainCamera == null) return;
-
             Vector2 mouseScreenPos = Mouse.current.position.ReadValue();
             Vector3 mouseWorldPos = _mainCamera.ScreenToWorldPoint(new Vector3(mouseScreenPos.x, mouseScreenPos.y, _mainCamera.nearClipPlane));
             mouseWorldPos.z = 0f;
-
             Vector3 direction = (mouseWorldPos - transform.position).normalized;
             float angle = Mathf.Atan2(direction.y, direction.x) * Mathf.Rad2Deg;
             
@@ -123,34 +120,22 @@ namespace Tanks2D
 
             switch (_forwardAxis)
             {
-                case ModelForwardAxis.X_Axis:
-                    transform.rotation = Quaternion.Euler(0f, 0f, angle);
-                    break;
-                case ModelForwardAxis.Y_Axis:
-                    transform.rotation = Quaternion.Euler(0f, 0f, angle - 90f);
-                    break;
-                case ModelForwardAxis.Z_Axis:
-                    transform.rotation = Quaternion.Euler(0f, -angle, 0f);
-                    break;
+                case ModelForwardAxis.X_Axis: transform.rotation = Quaternion.Euler(0f, 0f, angle); break;
+                case ModelForwardAxis.Y_Axis: transform.rotation = Quaternion.Euler(0f, 0f, angle - 90f); break;
+                case ModelForwardAxis.Z_Axis: transform.rotation = Quaternion.Euler(0f, -angle, 0f); break;
             }
         }
 
         private void Shoot()
         {
             if (_bulletPrefab == null || _firePoint == null) return;
-
             GameObject bullet = Instantiate(_bulletPrefab, _firePoint.position, _firePoint.rotation);
-            
             Vector3 safePos = bullet.transform.position;
             safePos.z = 0f;
             bullet.transform.position = safePos;
 
             BulletMovement2D bulletScript = bullet.GetComponent<BulletMovement2D>();
-            if (bulletScript == null)
-            {
-                bulletScript = bullet.AddComponent<BulletMovement2D>();
-            }
-            
+            if (bulletScript == null) bulletScript = bullet.AddComponent<BulletMovement2D>();
             bulletScript.Initialize(_bulletSpeed);
         }
     }
