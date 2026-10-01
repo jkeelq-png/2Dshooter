@@ -12,14 +12,17 @@ namespace Tanks2D
         [SerializeField] private Button openButton;
         [SerializeField] private Button closeButton;
 
-        // ГЛОБАЛЬНЫЙ ФЛАГ ПАУЗЫ
         public static bool IsPaused { get; private set; } = false;
 
         private void Start()
         {
             if (shopPanel != null) shopPanel.SetActive(false);
+            
+            // Убедимся, что при старте игры кнопка открытия точно видна
+            if (openButton != null) openButton.gameObject.SetActive(true); 
+            
             Time.timeScale = 1f;
-            IsPaused = false; // При старте паузы нет
+            IsPaused = false;
 
             if (openButton != null) openButton.onClick.AddListener(OpenShop);
             if (closeButton != null) closeButton.onClick.AddListener(CloseShop);
@@ -30,9 +33,13 @@ namespace Tanks2D
             if (shopPanel != null)
             {
                 shopPanel.SetActive(true);
+                
+                // НОВОЕ: Прячем саму кнопку открытия магазина
+                if (openButton != null) openButton.gameObject.SetActive(false); 
+                
                 Time.timeScale = 0f;
-                IsPaused = true; // ВКЛЮЧАЕМ ПАУЗУ
-                Debug.Log("[Shop] Магазин открыт. Игра на паузе.");
+                IsPaused = true;
+                Debug.Log("[Shop] Магазин открыт. Кнопка «Магазин» скрыта.");
             }
         }
 
@@ -41,9 +48,13 @@ namespace Tanks2D
             if (shopPanel != null)
             {
                 shopPanel.SetActive(false);
+                
+                // НОВОЕ: Возвращаем кнопку открытия магазина обратно на экран
+                if (openButton != null) openButton.gameObject.SetActive(true); 
+                
                 Time.timeScale = 1f;
-                IsPaused = false; // ВЫКЛЮЧАЕМ ПАУЗУ
-                Debug.Log("[Shop] Магазин закрыт. Игра возобновлена.");
+                IsPaused = false;
+                Debug.Log("[Shop] Магазин закрыт. Кнопка «Магазин» снова видна.");
             }
         }
 
