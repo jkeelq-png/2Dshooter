@@ -22,7 +22,7 @@ namespace Tanks2D
         }
 
         [Header("References (Ссылки)")]
-        [SerializeField, Tooltip("Список врагов и их individualные настройки")]
+        [SerializeField, Tooltip("Список врагов и их индивидуальные настройки")]
         private EnemySpawnConfig[] _enemiesConfigs;
 
         [Header("Spawn Settings (Настройки появления)")]
@@ -39,6 +39,10 @@ namespace Tanks2D
 
         private void Update()
         {
+            // НОВОЕ: Если игра поставлена на паузу в магазине — полностью останавливаем логику спавна.
+            // Новые свинки не будут накапливаться или появляться, пока открыто окно.
+            if (ShopController.IsPaused) return;
+
             if (_enemiesConfigs == null || _enemiesConfigs.Length == 0) return;
 
             if (Time.time >= _nextSpawnTime)

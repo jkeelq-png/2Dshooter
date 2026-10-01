@@ -37,7 +37,6 @@ namespace Tanks2D
         public static float CurrentFireRate { get; set; } = 0.4f;   
         public static int MaxAmmo { get; set; } = 15; 
 
-        // Свойства для чтения другими скриптами
         public int CurrentAmmo => _currentAmmo;
         public bool IsReloading => _isReloading;
         public float ReloadEndTime => _reloadEndTime; 
@@ -46,7 +45,7 @@ namespace Tanks2D
         {
             _mainCamera = Camera.main;
             CurrentReloadTime = _baseReloadTime; 
-            CurrentFireRate = _baseFireRate;
+            CurrentFireRate = _baseFireRate; // Присваиваем базовую скорострельность на старте
             MaxAmmo = _maxAmmo;
             _currentAmmo = MaxAmmo; 
         }
@@ -57,7 +56,6 @@ namespace Tanks2D
 
             RotatePlayerTowardsMouse();
 
-            // Проверка окончания перезарядки
             if (_isReloading && Time.time >= _reloadEndTime)
             {
                 _currentAmmo = MaxAmmo;
@@ -74,6 +72,8 @@ namespace Tanks2D
                     {
                         Shoot();
                         _currentAmmo--;
+                        
+                        // ИСПРАВЛЕНО: Теперь задержка берется СТРОГО из прокачанной переменной магазина!
                         _nextFireTime = Time.time + CurrentFireRate;
 
                         if (_currentAmmo <= 0)
@@ -84,7 +84,7 @@ namespace Tanks2D
                 }
             }
 
-            // РУЧНАЯ ПЕРЕЗАРЯДКА НА "R"
+            // Ручная перезарядка
             bool rPressed = (Keyboard.current != null && Keyboard.current.rKey.wasPressedThisFrame) || Input.GetKeyDown(KeyCode.R);
             if (rPressed && !_isReloading && _currentAmmo < MaxAmmo)
             {
@@ -96,7 +96,6 @@ namespace Tanks2D
         {
             _isReloading = true;
             _reloadEndTime = Time.time + CurrentReloadTime;
-            Debug.Log($"[Weapon] Перезарядка началась. Время: {CurrentReloadTime} сек.");
         }
 
         private void RotatePlayerTowardsMouse()
