@@ -28,6 +28,23 @@ namespace Tanks2D
             UpdateUI();
         }
 
+        private void Update()
+        {
+            // НОВОЕ: Управляем доступностью кнопки
+            if (buyButton != null)
+            {
+                // Если обойма уже максимального размера
+                if (PlayerController2D.MaxAmmo >= maxAmmoLimit)
+                {
+                    buyButton.interactable = false;
+                    return;
+                }
+
+                int cost = CalculatePrice();
+                buyButton.interactable = (Wallet.TotalGold >= cost);
+            }
+        }
+
         public void BuyUpgrade()
         {
             int cost = CalculatePrice();

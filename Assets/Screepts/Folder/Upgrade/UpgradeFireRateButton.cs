@@ -28,6 +28,24 @@ namespace Tanks2D
             UpdateUI();
         }
 
+        private void Update()
+        {
+            // НОВОЕ: Управляем доступностью кнопки
+            if (buyButton != null)
+            {
+                // Если достигнут лимит скорострельности
+                if (PlayerController2D.CurrentFireRate <= minFireRateLimit)
+                {
+                    buyButton.interactable = false;
+                    return;
+                }
+
+                // Иначе проверяем кошелек
+                int cost = CalculatePrice();
+                buyButton.interactable = (Wallet.TotalGold >= cost);
+            }
+        }
+
         public void BuyUpgrade()
         {
             int cost = CalculatePrice();
