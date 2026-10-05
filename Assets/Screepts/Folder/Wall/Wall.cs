@@ -1,6 +1,7 @@
 using UnityEngine;
 using UnityEngine.UI;
-using UnityEngine.SceneManagement; // НОВОЕ: Библиотека для управления сценами
+using UnityEngine.SceneManagement;
+using TMPro; // НОВОЕ: Подключаем пространство имен для работы с текстом
 
 namespace Tanks2D
 {
@@ -9,16 +10,21 @@ namespace Tanks2D
         [Header("Health Settings")]
         [SerializeField] private int maxHP = 100;
         private int _currentHP;
+        private float _visualHP; // НОВОЕ: Переменная, которая будет плавно «догонять» реальное HP
 
         [Header("UI Elements & Colors")]
         [SerializeField] private Slider wallHPSlider;
         [SerializeField] private Gradient hpGradient;
+        
+        [Tooltip("Перетащи сюда созданный текст WallHPText из слайдера")]
+        [SerializeField] private TextMeshProUGUI wallHPText; // НОВОЕ: Ссылка на текст с цифрами
+
+        [Header("Animation Settings")]
+        [Tooltip("Скорость плавного уменьшения полоски (чем выше, тем быстрее)")]
+        [SerializeField] private float lerpSpeed = 5f; // НОВОЕ: Скорость анимации
 
         [Header("Game Over Settings (Экран конца игры)")]
-        [Tooltip("Перетащи сюда объект GameOverPanel из Canvas")]
         [SerializeField] private GameObject gameOverPanel;
-        
-        [Tooltip("Перетащи сюда кнопку RestartButton из панели конца игры")]
         [SerializeField] private Button restartButton;
 
         private Image _sliderFillImage;
@@ -26,6 +32,7 @@ namespace Tanks2D
         private void Start()
         {
             _currentHP = maxHP;
+            _visualHP = maxHP; // В начале игры визуальное здоровье равно максимальному
 
             if (wallHPSlider != null)
             {
@@ -34,19 +41,33 @@ namespace Tanks2D
                 wallHPSlider.value = maxHP;
 
                 _sliderFillImage = wallHPSlider.fillRect.GetComponent<Image>();
-                UpdateSliderColor();
+                UpdateSliderVisuals();
             }
 
-            // Настраиваем кнопку перезапуска, если она привязана
             if (restartButton != null)
             {
                 restartButton.onClick.AddListener(RestartGame);
             }
 
-            // На всякий случай проверяем, что экран Game Over скрыт при старте
             if (gameOverPanel != null)
             {
                 gameOverPanel.SetActive(false);
+            }
+        }
+
+        private void Update()
+        {
+            // НОВОЕ: Плавная анимация ползунка
+            // Математическая функция Mathf.MoveTowards плавно двигает _visualHP к реальному _currentHP каждый кадр
+            if (!Mathf.Approximately(_visualHP, _currentHP))
+            {
+                _visualHP = Mathf.MoveTowards(_visualHP, _currentHP, lerpSpeed * maxHP * Time.deltaTime);
+                
+                if (wallHPSlider != null)
+                {
+                    wallHPSlider.value = _visualHP; // Присваиваем слайдеру промежуточное анимированное значение
+                    UpdateSliderVisuals(); // Перекрашиваем полоску в зависимости от анимированного значения
+                }
             }
         }
 
@@ -55,13 +76,14 @@ namespace Tanks2D
             if (_currentHP <= 0) return;
 
             _currentHP -= damageAmount;
+            
+            // Если здоровье упало ниже нуля, принудительно округляем до 0
+            if (_currentHP < 0) _currentHP = 0;
+
             Debug.Log($"[Wall] Стене нанесен урон! Осталось HP: {_currentHP}/{maxHP}");
 
-            if (wallHPSlider != null)
-            {
-                wallHPSlider.value = _currentHP;
-                UpdateSliderColor();
-            }
+            // Сразу же обновляем цифры на экране (текст меняется мгновенно, а полоска поедет плавно)
+            UpdateHPText();
 
             if (_currentHP <= 0)
             {
@@ -69,42 +91,50 @@ namespace Tanks2D
             }
         }
 
-        private void UpdateSliderColor()
+        // Изменено: Теперь цвет и текст обновляются на основе текущего состояния ползунка
+        private void UpdateSliderVisuals()
         {
             if (_sliderFillImage != null && hpGradient != null)
             {
-                float hpNormalized = (float)_currentHP / maxHP;
+                float hpNormalized = _visualHP / maxHP;
                 _sliderFillImage.color = hpGradient.Evaluate(hpNormalized);
+            }
+
+            UpdateHPText();
+        }
+
+        // НОВОЕ: Метод отображения текущих цифр здоровья
+        private void UpdateHPText()
+        {
+            if (wallHPText != null)
+            {
+                // Выводим в формате "Текущее / Максимальное" (например: 75 / 100)
+                wallHPText.text = $"{_currentHP} / {maxHP}";
             }
         }
 
-        // НОВОЕ: Логика остановки игры и включения экрана поражения
         private void TriggerGameOver()
         {
             Debug.Log("[Game Over] СТЕНА РАЗРУШЕНА! Показываем экран проигрыша.");
             
-            // Включаем панель на экране
+            // Принудительно сбрасываем слайдер и текст в 0, чтобы сгладить остатки анимации
+            if (wallHPSlider != null) wallHPSlider.value = 0;
+            if (wallHPText != null) wallHPText.text = $"0 / {maxHP}";
+
             if (gameOverPanel != null)
             {
                 gameOverPanel.SetActive(true);
             }
 
-            // Ставим игру на полную паузу, замораживая танк, пули и свинок
             Time.timeScale = 0f; 
         }
 
-        // НОВОЕ: Метод перезапуска текущего уровня
         public void RestartGame()
         {
             Debug.Log("[Game] Перезапуск уровня...");
-            
-            // ОБЯЗАТЕЛЬНО возвращаем время в нормальный режим, иначе новая игра начнется на паузе!
             Time.timeScale = 1f; 
-
-            // Сбрасываем кошелек до нуля, чтобы игрок начинал честно сначала
             Wallet.ResetWallet();
 
-            // Перезагружаем текущую активную сцену
             string currentSceneName = SceneManager.GetActiveScene().name;
             SceneManager.LoadScene(currentSceneName);
         }
