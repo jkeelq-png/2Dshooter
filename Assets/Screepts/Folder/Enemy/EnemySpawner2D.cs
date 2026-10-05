@@ -4,45 +4,43 @@ namespace Tanks2D
 {
     public class EnemySpawner2D : MonoBehaviour
     {
-        // Вспомогательный класс для настроек конкретного врага
         [System.Serializable]
         public class EnemySpawnConfig
         {
-            [Tooltip("Имя для удобства отображения в инспекторе")]
             public string enemyName;
-            
-            [Tooltip("Префаб этого врага")]
             public GameObject enemyPrefab;
-            
-            [Range(0, 100), Tooltip("Шанс появления (относительный вес). Чем выше, тем чаще спавнится.")]
-            public int spawnChance = 50;
-
-            [Min(0), Tooltip("Количество золота за уничтожение этого врага")]
-            public int goldReward = 10;
+            [Range(0, 100)] public int spawnChance = 50;
+            [Min(0)] public int goldReward = 10;
         }
 
         [Header("References (Ссылки)")]
-        [SerializeField, Tooltip("Список врагов и их индивидуальные настройки")]
-        private EnemySpawnConfig[] _enemiesConfigs;
+        [SerializeField] private EnemySpawnConfig[] _enemiesConfigs;
 
         [Header("Spawn Settings (Настройки появления)")]
-        [SerializeField, Tooltip("Задержка между появлением врагов в секундах")]
-        private float _spawnRate = 2f;
+        [SerializeField] private float _spawnRate = 2f;
 
         [Header("Spawn Zone Boundaries (Границы зоны спавна)")]
-        [SerializeField, Tooltip("Минимальная высота (Y) появления врага")]
-        private float _minY = -4f;
-        [SerializeField, Tooltip("Максимальная высота (Y) появления врага")]
-        private float _maxY = 4f;
+        [SerializeField] private float _minY = -4f;
+        [SerializeField] private float _maxY = 4f;
 
         private float _nextSpawnTime = 0f;
+        
+        // ВНУТРЕННЯЯ ПЕРЕМЕННАЯ ДЛЯ ХРАНЕНИЯ СТЕНЫ
+        private Wall _cachedWallOnScene;
+
+        private void Start()
+        {
+            // На старте игры спавнер сам находит стену на сцене ОДИН РАЗ
+            _cachedWallOnScene = Object.FindFirstObjectByType<Wall>();
+            if (_cachedWallOnScene == null)
+            {
+                Debug.LogError("[EnemySpawner2D] Ошибка: Спавнер не смог найти объект со скриптом Wall на сцене!");
+            }
+        }
 
         private void Update()
         {
-            // НОВОЕ: Если игра поставлена на паузу в магазине — полностью останавливаем логику спавна.
-            // Новые свинки не будут накапливаться или появляться, пока открыто окно.
             if (ShopController.IsPaused) return;
-
             if (_enemiesConfigs == null || _enemiesConfigs.Length == 0) return;
 
             if (Time.time >= _nextSpawnTime)
@@ -55,7 +53,6 @@ namespace Tanks2D
         private void SpawnEnemy()
         {
             EnemySpawnConfig selectedConfig = GetRandomEnemyConfig();
-
             if (selectedConfig == null || selectedConfig.enemyPrefab == null) return;
 
             float randomY = Random.Range(_minY, _maxY);
@@ -67,12 +64,13 @@ namespace Tanks2D
             safePos.z = 0f;
             newEnemy.transform.position = safePos;
 
-            // ИСПРАВЛЕНИЕ: Ищем скрипт PigEnemy, используя global:: для выхода из пространства имен Tanks2D
-            global::PigEnemy pigEnemy = newEnemy.GetComponent<global::PigEnemy>();
-            if (pigEnemy != null)
+            PigEnemy enemyScript = newEnemy.GetComponent<PigEnemy>();
+            if (enemyScript != null)
             {
-                // Передаем награду в золото напрямую в вашу свинку
-                pigEnemy.Initialize(selectedConfig.goldReward);
+                enemyScript.Initialize(selectedConfig.goldReward);
+                
+                // НОВОЕ: Спавнер лично передает ссылку на стену новорожденному мобу!
+                enemyScript.SetTargetWall(_cachedWallOnScene);
             }
             else
             {
@@ -83,8 +81,6 @@ namespace Tanks2D
         private EnemySpawnConfig GetRandomEnemyConfig()
         {
             int totalWeight = 0;
-
-            // 1. Считаем сумму всех шансов (пропуская пустые слоты и нулевые шансы)
             foreach (var config in _enemiesConfigs)
             {
                 if (config.enemyPrefab != null && config.spawnChance > 0)
@@ -95,11 +91,9 @@ namespace Tanks2D
 
             if (totalWeight == 0) return null;
 
-            // 2. Генерируем случайное число в пределах общей суммы
             int randomWeight = Random.Range(0, totalWeight);
             int currentWeightSum = 0;
 
-            // 3. Находим, в какой отрезок попало число
             foreach (var config in _enemiesConfigs)
             {
                 if (config.enemyPrefab == null || config.spawnChance <= 0) continue;

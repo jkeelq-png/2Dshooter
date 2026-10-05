@@ -368,6 +368,7 @@ GameObject:
   - component: {fileID: 7924163824062380369}
   - component: {fileID: 2798947184148396642}
   - component: {fileID: 6847152168163782634}
+  - component: {fileID: -9127994934865268449}
   m_Layer: 0
   m_Name: EnemyPig
   m_TagString: Enemy
@@ -525,6 +526,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::PigEnemy
   maxHP: 30
   speed: 2
+  attackDamage: 10
+  attackRate: 1.5
   damageTextPrefab: {fileID: 5301901670404475359, guid: 07f5e5bcc6a63d046b8d5b6e8fceecf3, type: 3}
   goldTextPrefab: {fileID: 5301901670404475359, guid: 92e1001d815a5bf4193d302aa32a2964, type: 3}
   hpSlider: {fileID: 6076732245399102000}
@@ -564,6 +567,33 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a28550484476f1341b9483f4bc05aba5, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Tanks2D.EnemyHealth
+--- !u!50 &-9127994934865268449
+Rigidbody2D:
+  serializedVersion: 5
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1459525838681576854}
+  m_BodyType: 1
+  m_Simulated: 1
+  m_UseFullKinematicContacts: 0
+  m_UseAutoMass: 0
+  m_Mass: 1
+  m_LinearDamping: 0
+  m_AngularDamping: 0.05
+  m_GravityScale: 1
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_Interpolate: 0
+  m_SleepingMode: 1
+  m_CollisionDetection: 0
+  m_Constraints: 0
 --- !u!1 &3911888604933542948
 GameObject:
   m_ObjectHideFlags: 0
