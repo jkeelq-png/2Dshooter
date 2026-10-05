@@ -8,9 +8,13 @@ namespace Tanks2D
     public class Wall : MonoBehaviour
     {
         [Header("Health Settings")]
-        [SerializeField] private int maxHP = 100;
+        [SerializeField] private int _baseMaxHP = 100;
         private int _currentHP;
         private float _visualHP;
+
+        // ГЛОБАЛЬНАЯ СТАЦИОНАРНАЯ ПЕРЕМЕННАЯ ДЛЯ МАГАЗИНА
+        // Кнопка улучшения будет увеличивать это значение
+        public static int CurrentMaxHP { get; set; } = 100;
 
         [Header("UI Elements & Colors")]
         [SerializeField] private Slider wallHPSlider;
@@ -19,10 +23,7 @@ namespace Tanks2D
 
         [Header("Damage Text Settings (Всплывающий урон стены)")]
         [SerializeField] private GameObject damageTextPrefab;
-        
-        [Tooltip("Каким цветом будут вылетать цифры урона при ударе по стене")]
-        [SerializeField] private Color textColorForWall = new Color(0.6f, 0.1f, 1f); // Ярко-фиолетовый
-        
+        [SerializeField] private Color textColorForWall = new Color(0.6f, 0.1f, 1f);
         [SerializeField] private float offsetX = 0f;
         [SerializeField] private float offsetY = 2.0f;
 
@@ -35,16 +36,31 @@ namespace Tanks2D
 
         private Image _sliderFillImage;
 
+        // Ссылка на текущую активную стену на сцене, чтобы магазин мог приказать ей обновить UI
+        public static Wall ActiveInstance { get; private set; }
+
+        private void Awake()
+        {
+            ActiveInstance = this;
+        }
+
         private void Start()
         {
-            _currentHP = maxHP;
-            _visualHP = maxHP;
+            // При старте уровня задаем стене актуальное прокачанное здоровье
+            // Если игрок еще ничего не качал, оно будет равно базовым 100
+            if (CurrentMaxHP == 100) 
+            {
+                CurrentMaxHP = _baseMaxHP;
+            }
+
+            _currentHP = CurrentMaxHP;
+            _visualHP = CurrentMaxHP;
 
             if (wallHPSlider != null)
             {
                 wallHPSlider.minValue = 0;
-                wallHPSlider.maxValue = maxHP;
-                wallHPSlider.value = maxHP;
+                wallHPSlider.maxValue = CurrentMaxHP;
+                wallHPSlider.value = CurrentMaxHP;
 
                 _sliderFillImage = wallHPSlider.fillRect.GetComponent<Image>();
                 UpdateSliderVisuals();
@@ -65,7 +81,7 @@ namespace Tanks2D
         {
             if (!Mathf.Approximately(_visualHP, _currentHP))
             {
-                _visualHP = Mathf.MoveTowards(_visualHP, _currentHP, lerpSpeed * maxHP * Time.deltaTime);
+                _visualHP = Mathf.MoveTowards(_visualHP, _currentHP, lerpSpeed * CurrentMaxHP * Time.deltaTime);
                 
                 if (wallHPSlider != null)
                 {
@@ -79,7 +95,7 @@ namespace Tanks2D
         {
             _currentHP = Mathf.Max(0, _currentHP - damageAmount);
 
-            Debug.Log($"[Wall] Стене нанесен урон! Осталось HP: {_currentHP}/{maxHP}");
+            Debug.Log($"[Wall] Стене нанесен урон! Осталось HP: {_currentHP}/{CurrentMaxHP}");
 
             if (damageTextPrefab != null)
             {
@@ -92,8 +108,6 @@ namespace Tanks2D
                     damageTextScript.Setup(damageAmount, textColorForWall);
                 }
 
-                // НОВОЕ: Делаем цифры урона стены на 40% крупнее, чтобы они бросались в глаза
-                // Родной масштаб префаба в DamageText.cs равен 0.1, мы сделаем 0.14
                 textGo.transform.localScale = new Vector3(0.14f, 0.14f, 0.14f);
             }
 
@@ -105,11 +119,26 @@ namespace Tanks2D
             }
         }
 
+        // МЕТОД РЕМОНТА И ОБНОВЛЕНИЯ (Вызывается из кнопки магазина при покупке апгрейда)
+        public void UpgradeAndRepair()
+        {
+            _currentHP = CurrentMaxHP; // Полностью лечим стену
+            _visualHP = CurrentMaxHP;  // Мгновенно подтягиваем ползунок
+
+            if (wallHPSlider != null)
+            {
+                wallHPSlider.maxValue = CurrentMaxHP; // Увеличиваем шкалу слайдера
+                wallHPSlider.value = CurrentMaxHP;
+            }
+
+            UpdateSliderVisuals();
+        }
+
         private void UpdateSliderVisuals()
         {
             if (_sliderFillImage != null && hpGradient != null)
             {
-                float hpNormalized = _visualHP / maxHP;
+                float hpNormalized = _visualHP / CurrentMaxHP;
                 _sliderFillImage.color = hpGradient.Evaluate(hpNormalized);
             }
             UpdateHPText();
@@ -119,7 +148,7 @@ namespace Tanks2D
         {
             if (wallHPText != null)
             {
-                wallHPText.text = $"{_currentHP} / {maxHP}";
+                wallHPText.text = $"{_currentHP} / {CurrentMaxHP}";
             }
         }
 
@@ -128,7 +157,7 @@ namespace Tanks2D
             Debug.Log("[Game Over] СТЕНА РАЗРУШЕНА! Показываем экран проигрыша.");
             
             if (wallHPSlider != null) wallHPSlider.value = 0;
-            if (wallHPText != null) wallHPText.text = $"0 / {maxHP}";
+            if (wallHPText != null) wallHPText.text = $"0 / {CurrentMaxHP}";
 
             if (gameOverPanel != null)
             {
@@ -142,6 +171,10 @@ namespace Tanks2D
         {
             Debug.Log("[Game] Перезапуск уровня...");
             Time.timeScale = 1f; 
+            
+            // Сбрасываем прокачанное здоровье стены до базового при полном перезапуске игры
+            CurrentMaxHP = _baseMaxHP;
+            
             Wallet.ResetWallet();
 
             string currentSceneName = SceneManager.GetActiveScene().name;

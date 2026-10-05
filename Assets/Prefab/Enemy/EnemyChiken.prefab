@@ -698,8 +698,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PigEnemy
   maxHP: 15
-  speed: 2
-  attackDamage: 10
+  speed: 4
+  attackDamage: 5
   attackRate: 1.5
   attackDistanceX: 1
   damageTextPrefab: {fileID: 5301901670404475359, guid: 07f5e5bcc6a63d046b8d5b6e8fceecf3, type: 3}
