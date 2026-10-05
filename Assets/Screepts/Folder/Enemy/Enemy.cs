@@ -15,11 +15,11 @@ public class PigEnemy : MonoBehaviour
     [SerializeField] private int attackDamage = 10; 
     [SerializeField] private float attackRate = 1.5f; 
     [Tooltip("Дистанция по оси X, ближе которой свинка начинает бить стену")]
-    [SerializeField] private float attackDistanceX = 1.2f; 
+    [SerializeField] private float attackDistanceX = 1.0f; 
     private float _nextAttackTime = 0f;
     
     private bool _isAtWall = false; 
-    private Tanks2D.Wall _targetWall; // Переменная, которую заполнит спавнер
+    private Tanks2D.Wall _targetWall; 
 
     [Header("UI & Visuals")]
     [SerializeField] private GameObject damageTextPrefab; 
@@ -33,20 +33,26 @@ public class PigEnemy : MonoBehaviour
     private Animator animator;
     private bool isDying = false;
     private int _goldValue;
+    
+    // НОВОЕ: Запоминаем, босс этот объект или нет
+    private bool _isBoss = false; 
 
-    // Метод, через который Спавнер принудительно передает ссылку на стену
     public void SetTargetWall(Tanks2D.Wall wall)
     {
         _targetWall = wall;
-        if (wall != null)
-        {
-            Debug.Log($"[PigEnemy] Свинка {name} успешно получила ссылку на стену! Координата стены X: {wall.transform.position.x}");
-        }
+    }
+
+    // ИСПРАВЛЕНО: Теперь принимает два параметра
+    public void Initialize(int goldReward, bool isBoss)
+    {
+        _goldValue = goldReward;
+        _isBoss = isBoss;
     }
 
     public void Initialize(int goldReward)
     {
         _goldValue = goldReward;
+        _isBoss = false;
     }
 
     void Start()
@@ -60,12 +66,6 @@ public class PigEnemy : MonoBehaviour
             hpSlider.maxValue = maxHP;
             hpSlider.value = maxHP; 
         }
-
-        // Если спавнер почему-то не передал стену, ищем её сами аварийно
-        if (_targetWall == null)
-        {
-            _targetWall = Object.FindFirstObjectByType<Tanks2D.Wall>();
-        }
     }
 
     void Update()
@@ -74,19 +74,12 @@ public class PigEnemy : MonoBehaviour
 
         if (_targetWall != null)
         {
-            // Считаем расстояние строго по горизонтали X
             float distanceX = Mathf.Abs(transform.position.x - _targetWall.transform.position.x);
 
-            // ЖЕЛЕЗОБЕТОННАЯ ПРОВЕРКА: Если подошли на дистанцию атаки
             if (distanceX <= attackDistanceX)
             {
-                if (!_isAtWall)
-                {
-                    _isAtWall = true;
-                    Debug.Log($"[PigEnemy] Свинка {name} ДОШЛА ДО СТЕНЫ! Дистанция: {distanceX}. Останавливаемся.");
-                }
+                _isAtWall = true;
 
-                // Логика атаки по таймеру
                 if (Time.time >= _nextAttackTime)
                 {
                     if (animator != null) animator.SetTrigger("Attack"); 
@@ -96,17 +89,6 @@ public class PigEnemy : MonoBehaviour
             }
             else
             {
-                // Если мы уже пересекли стену (пролетели мимо из-за высокой скорости) — принудительно разворачиваем и стопим!
-                // Проверяем, не пролетели ли мы координату стены
-                bool passedWallRightToLeft = (speed < 0 || transform.right.x < 0) && (transform.position.x < _targetWall.transform.position.x);
-                bool passedWallLeftToRight = (speed > 0 || transform.right.x > 0) && (transform.position.x > _targetWall.transform.position.x);
-
-                if (passedWallRightToLeft || passedWallLeftToRight)
-                {
-                    _isAtWall = true; // Принудительно стопим, так как стена уже позади/под нами
-                    return;
-                }
-
                 _isAtWall = false;
             }
         }
@@ -115,11 +97,9 @@ public class PigEnemy : MonoBehaviour
             _isAtWall = false;
         }
 
-        // ДВИЖЕНИЕ: Если не у стены — бежим вперед
         if (!_isAtWall)
         {
-            // Поддержка как классического Translate, так и движения на основе локальных осей
-            transform.Translate(Vector3.right * speed * Time.deltaTime, Space.Self);
+            transform.Translate(Vector2.right * speed * Time.deltaTime);
         }
     }
 
@@ -153,6 +133,12 @@ public class PigEnemy : MonoBehaviour
     {
         if (isDying) return;
         isDying = true;
+
+        // ИСПРАВЛЕНО: Передаем спавнеру точный флаг — босс умер или обычный моб
+        if (Tanks2D.EnemySpawner2D.Instance != null)
+        {
+            Tanks2D.EnemySpawner2D.Instance.RegisterEnemyDeath(_isBoss);
+        }
 
         Wallet.AddGold(_goldValue);
 
