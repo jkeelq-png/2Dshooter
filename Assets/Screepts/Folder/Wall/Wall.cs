@@ -1,5 +1,6 @@
 using UnityEngine;
 using UnityEngine.UI;
+using UnityEngine.SceneManagement; // НОВОЕ: Библиотека для управления сценами
 
 namespace Tanks2D
 {
@@ -11,12 +12,15 @@ namespace Tanks2D
 
         [Header("UI Elements & Colors")]
         [SerializeField] private Slider wallHPSlider;
-
-        // НОВОЕ: Поле для настройки цветов в Инспекторе Unity
-        [Tooltip("Настрой цвета здесь: справа налево (от 100% HP до 0% HP)")]
         [SerializeField] private Gradient hpGradient;
 
-        // Внутренняя ссылка на картинку заполнения слайдера, которую мы будем красить
+        [Header("Game Over Settings (Экран конца игры)")]
+        [Tooltip("Перетащи сюда объект GameOverPanel из Canvas")]
+        [SerializeField] private GameObject gameOverPanel;
+        
+        [Tooltip("Перетащи сюда кнопку RestartButton из панели конца игры")]
+        [SerializeField] private Button restartButton;
+
         private Image _sliderFillImage;
 
         private void Start()
@@ -29,12 +33,20 @@ namespace Tanks2D
                 wallHPSlider.maxValue = maxHP;
                 wallHPSlider.value = maxHP;
 
-                // Находим компонент Image на объекте Fill внутри Слайдера
-                // Обычно он лежит по пути: Slider -> Fill Area -> Fill
                 _sliderFillImage = wallHPSlider.fillRect.GetComponent<Image>();
-                
-                // Сразу красим в максимальный цвет (зелёный) при старте
                 UpdateSliderColor();
+            }
+
+            // Настраиваем кнопку перезапуска, если она привязана
+            if (restartButton != null)
+            {
+                restartButton.onClick.AddListener(RestartGame);
+            }
+
+            // На всякий случай проверяем, что экран Game Over скрыт при старте
+            if (gameOverPanel != null)
+            {
+                gameOverPanel.SetActive(false);
             }
         }
 
@@ -48,34 +60,53 @@ namespace Tanks2D
             if (wallHPSlider != null)
             {
                 wallHPSlider.value = _currentHP;
-                
-                // НОВОЕ: Перекрашиваем полоску при каждом получении урона
                 UpdateSliderColor();
             }
 
             if (_currentHP <= 0)
             {
-                DestroyWall();
+                TriggerGameOver();
             }
         }
 
-        // Вспомогательный метод для динамического изменения цвета
         private void UpdateSliderColor()
         {
             if (_sliderFillImage != null && hpGradient != null)
             {
-                // Считаем процент здоровья от 0.0 до 1.0
                 float hpNormalized = (float)_currentHP / maxHP;
-                
-                // Берем соответствующий цвет из градиента и красим полоску
                 _sliderFillImage.color = hpGradient.Evaluate(hpNormalized);
             }
         }
 
-        private void DestroyWall()
+        // НОВОЕ: Логика остановки игры и включения экрана поражения
+        private void TriggerGameOver()
         {
-            Debug.Log("[Wall] СТЕНА РАЗРУШЕНА! Игра окончена.");
-            Destroy(gameObject); 
+            Debug.Log("[Game Over] СТЕНА РАЗРУШЕНА! Показываем экран проигрыша.");
+            
+            // Включаем панель на экране
+            if (gameOverPanel != null)
+            {
+                gameOverPanel.SetActive(true);
+            }
+
+            // Ставим игру на полную паузу, замораживая танк, пули и свинок
+            Time.timeScale = 0f; 
+        }
+
+        // НОВОЕ: Метод перезапуска текущего уровня
+        public void RestartGame()
+        {
+            Debug.Log("[Game] Перезапуск уровня...");
+            
+            // ОБЯЗАТЕЛЬНО возвращаем время в нормальный режим, иначе новая игра начнется на паузе!
+            Time.timeScale = 1f; 
+
+            // Сбрасываем кошелек до нуля, чтобы игрок начинал честно сначала
+            Wallet.ResetWallet();
+
+            // Перезагружаем текущую активную сцену
+            string currentSceneName = SceneManager.GetActiveScene().name;
+            SceneManager.LoadScene(currentSceneName);
         }
     }
 }
