@@ -1,7 +1,7 @@
 using UnityEngine;
 using UnityEngine.UI;
 using UnityEngine.SceneManagement;
-using TMPro; // НОВОЕ: Подключаем пространство имен для работы с текстом
+using TMPro;
 
 namespace Tanks2D
 {
@@ -10,18 +10,24 @@ namespace Tanks2D
         [Header("Health Settings")]
         [SerializeField] private int maxHP = 100;
         private int _currentHP;
-        private float _visualHP; // НОВОЕ: Переменная, которая будет плавно «догонять» реальное HP
+        private float _visualHP;
 
         [Header("UI Elements & Colors")]
         [SerializeField] private Slider wallHPSlider;
         [SerializeField] private Gradient hpGradient;
+        [SerializeField] private TextMeshProUGUI wallHPText;
+
+        [Header("Damage Text Settings (Всплывающий урон стены)")]
+        [SerializeField] private GameObject damageTextPrefab;
         
-        [Tooltip("Перетащи сюда созданный текст WallHPText из слайдера")]
-        [SerializeField] private TextMeshProUGUI wallHPText; // НОВОЕ: Ссылка на текст с цифрами
+        [Tooltip("Каким цветом будут вылетать цифры урона при ударе по стене")]
+        [SerializeField] private Color textColorForWall = new Color(0.6f, 0.1f, 1f); // Ярко-фиолетовый
+        
+        [SerializeField] private float offsetX = 0f;
+        [SerializeField] private float offsetY = 2.0f;
 
         [Header("Animation Settings")]
-        [Tooltip("Скорость плавного уменьшения полоски (чем выше, тем быстрее)")]
-        [SerializeField] private float lerpSpeed = 5f; // НОВОЕ: Скорость анимации
+        [SerializeField] private float lerpSpeed = 5f;
 
         [Header("Game Over Settings (Экран конца игры)")]
         [SerializeField] private GameObject gameOverPanel;
@@ -32,7 +38,7 @@ namespace Tanks2D
         private void Start()
         {
             _currentHP = maxHP;
-            _visualHP = maxHP; // В начале игры визуальное здоровье равно максимальному
+            _visualHP = maxHP;
 
             if (wallHPSlider != null)
             {
@@ -57,32 +63,40 @@ namespace Tanks2D
 
         private void Update()
         {
-            // НОВОЕ: Плавная анимация ползунка
-            // Математическая функция Mathf.MoveTowards плавно двигает _visualHP к реальному _currentHP каждый кадр
             if (!Mathf.Approximately(_visualHP, _currentHP))
             {
                 _visualHP = Mathf.MoveTowards(_visualHP, _currentHP, lerpSpeed * maxHP * Time.deltaTime);
                 
                 if (wallHPSlider != null)
                 {
-                    wallHPSlider.value = _visualHP; // Присваиваем слайдеру промежуточное анимированное значение
-                    UpdateSliderVisuals(); // Перекрашиваем полоску в зависимости от анимированного значения
+                    wallHPSlider.value = _visualHP;
+                    UpdateSliderVisuals();
                 }
             }
         }
 
         public void TakeDamage(int damageAmount)
         {
-            if (_currentHP <= 0) return;
-
-            _currentHP -= damageAmount;
-            
-            // Если здоровье упало ниже нуля, принудительно округляем до 0
-            if (_currentHP < 0) _currentHP = 0;
+            _currentHP = Mathf.Max(0, _currentHP - damageAmount);
 
             Debug.Log($"[Wall] Стене нанесен урон! Осталось HP: {_currentHP}/{maxHP}");
 
-            // Сразу же обновляем цифры на экране (текст меняется мгновенно, а полоска поедет плавно)
+            if (damageTextPrefab != null)
+            {
+                Vector3 spawnPosition = transform.position + new Vector3(offsetX, offsetY, 0f);
+                GameObject textGo = Instantiate(damageTextPrefab, spawnPosition, Quaternion.identity);
+                
+                DamageText damageTextScript = textGo.GetComponent<DamageText>();
+                if (damageTextScript != null)
+                {
+                    damageTextScript.Setup(damageAmount, textColorForWall);
+                }
+
+                // НОВОЕ: Делаем цифры урона стены на 40% крупнее, чтобы они бросались в глаза
+                // Родной масштаб префаба в DamageText.cs равен 0.1, мы сделаем 0.14
+                textGo.transform.localScale = new Vector3(0.14f, 0.14f, 0.14f);
+            }
+
             UpdateHPText();
 
             if (_currentHP <= 0)
@@ -91,7 +105,6 @@ namespace Tanks2D
             }
         }
 
-        // Изменено: Теперь цвет и текст обновляются на основе текущего состояния ползунка
         private void UpdateSliderVisuals()
         {
             if (_sliderFillImage != null && hpGradient != null)
@@ -99,16 +112,13 @@ namespace Tanks2D
                 float hpNormalized = _visualHP / maxHP;
                 _sliderFillImage.color = hpGradient.Evaluate(hpNormalized);
             }
-
             UpdateHPText();
         }
 
-        // НОВОЕ: Метод отображения текущих цифр здоровья
         private void UpdateHPText()
         {
             if (wallHPText != null)
             {
-                // Выводим в формате "Текущее / Максимальное" (например: 75 / 100)
                 wallHPText.text = $"{_currentHP} / {maxHP}";
             }
         }
@@ -117,7 +127,6 @@ namespace Tanks2D
         {
             Debug.Log("[Game Over] СТЕНА РАЗРУШЕНА! Показываем экран проигрыша.");
             
-            // Принудительно сбрасываем слайдер и текст в 0, чтобы сгладить остатки анимации
             if (wallHPSlider != null) wallHPSlider.value = 0;
             if (wallHPText != null) wallHPText.text = $"0 / {maxHP}";
 

@@ -12,15 +12,21 @@ public class DamageText : MonoBehaviour
     private Color startColor;
     private float lifetime;
 
-    // МЕТОД ДЛЯУСТАНОВКИ ЦИФРЫ УРОНА
-    public void Setup(int damageAmount)
+    // ОБНОВЛЕННЫЙ МЕТОД: Теперь можно передавать цвет! (По умолчанию белый)
+    public void Setup(int damageAmount, Color? customColor = null)
     {
-        // Находим компонент текста, если он еще не найден
         if (textMeshPro == null) textMeshPro = GetComponent<TextMeshPro>();
         
         if (textMeshPro != null)
         {
-            textMeshPro.text = damageAmount.ToString(); // Меняем текст на число урона
+            textMeshPro.text = damageAmount.ToString();
+            
+            // Если передан кастомный цвет (например, от стены) — красим в него, иначе оставляем родной цвет префаба
+            if (customColor.HasValue)
+            {
+                textMeshPro.color = customColor.Value;
+            }
+            
             startColor = textMeshPro.color;
         }
     }
@@ -30,7 +36,6 @@ public class DamageText : MonoBehaviour
         if (textMeshPro == null) textMeshPro = GetComponent<TextMeshPro>();
         if (textMeshPro != null) startColor = textMeshPro.color;
 
-        // Блокировка поворота и масштаба, чтобы текст не косило от свинки
         transform.rotation = Quaternion.identity;
         transform.localScale = new Vector3(0.1f, 0.1f, 0.1f); 
 
